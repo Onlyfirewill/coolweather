@@ -1,8 +1,10 @@
 package com.coolweather.android;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +36,8 @@ import okhttp3.Response;
  */
 
 public class ChooseAreaFragment extends Fragment {
+    private static final String TAG = "ChooseAreaFragment";
+
     public static final int LEVEL_PROVINCE = 0;
     public static final int LEVEL_CITY = 1;
     public static final int LEVEL_COUNTY = 2;
@@ -76,6 +80,20 @@ public class ChooseAreaFragment extends Fragment {
                 } else if (currentLevel == LEVEL_CITY) {
                     selectedCity = cityList.get(position);
                     queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    String weatherId = countyList.get(position).getWeatherId();
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    } else if (getActivity() instanceof WeatherActivity) {
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
+
                 }
             }
         });
@@ -92,6 +110,7 @@ public class ChooseAreaFragment extends Fragment {
         });
 
         queryProvinces();
+
     }
 
     private void queryProvinces() {
@@ -99,15 +118,20 @@ public class ChooseAreaFragment extends Fragment {
         backButton.setVisibility(View.GONE);
         provinceList = DataSupport.findAll(Province.class);
         if (provinceList.size() > 0) {
+            Log.e("fuck-------------cafif", "--------------------------------------------------");
+
             dataList.clear();
             for (Province province : provinceList) {
                 dataList.add(province.getProvinceName());
+//                Log.e(TAG, "queryProvince province->getId():" + province.getId());
             }
             adapter.notifyDataSetChanged();
             listView.setSelection(0);
             currentLevel = LEVEL_PROVINCE;
         } else {
             String address = "http://guolin.tech/api/china";
+            Log.e("fuck-------------caf", "--------------------------------------------------");
+
             queryFromServer(address, "province");
         }
     }
@@ -117,6 +141,8 @@ public class ChooseAreaFragment extends Fragment {
         backButton.setVisibility(View.VISIBLE);
         cityList = DataSupport.where("provinceid = ?", String.valueOf(
                 selectedProvince.getId())).find(City.class);
+//        Log.e(TAG, "province->getId():" + selectedProvince.getId());
+//        Log.e(TAG, "province->getProvinceCode():" + selectedProvince.getProvinceCode());
         if (cityList.size() > 0) {
             dataList.clear();
             for (City city : cityList) {
@@ -172,6 +198,7 @@ public class ChooseAreaFragment extends Fragment {
                 boolean result = false;
                 if ("province".equals(type)) {
                     result = Utility.handleProvinceResponse(responseText);
+                    Log.e("fuck---------cafequal", "--------------------------------------------------");
                 } else if ("city".equals(type)) {
                     result = Utility.handleCityResponse(responseText, selectedProvince.getId());
                 } else if ("county".equals(type)) {
